@@ -233,9 +233,35 @@ MIT License - see [LICENSE](../LICENSE) file for details.
 
 ## 🔗 Related Projects
 
-- **Gateway**: [cragcrowd-gateway](../cragcrowd-gateway/)
-- **API**: [cragcrowd-api](../cragcrowd-api/)
-- **Web UI**: [cragcrowd-web-ui](../cragcrowd-web-ui/)
+- **Main Project**: [cragcrowd-utils](https://github.com/shotah/cragcrowd-utils) - Deployment & documentation
+- **Gateway**: [cragcrowd-gateway](https://github.com/shotah/cragcrowd-gateway) - ESP32 gateway firmware
+- **API**: [cragcrowd-api](https://github.com/shotah/cragcrowd-api) - TypeScript/Express backend
+- **Web UI**: [cragcrowd-web-ui](https://github.com/shotah/cragcrowd-web-ui) - React frontend dashboard
+
+## 🚀 Quick Start (Full System)
+
+For complete system setup including all components:
+
+```bash
+# Clone all repositories
+mkdir cragcrowd && cd cragcrowd
+git clone https://github.com/shotah/cragcrowd-utils.git
+git clone https://github.com/shotah/cragcrowd-api.git
+git clone https://github.com/shotah/cragcrowd-web-ui.git
+git clone https://github.com/shotah/cragcrowd-firmware.git
+git clone https://github.com/shotah/cragcrowd-gateway.git
+
+# Start development environment (for API/UI)
+cd cragcrowd-utils
+make quick-dev
+
+# Build and flash firmware (in another terminal)
+cd cragcrowd-firmware
+make setup
+make deploy
+```
+
+See the [cragcrowd-utils repository](https://github.com/shotah/cragcrowd-utils) for complete system deployment instructions.
 
 ## 📧 Support
 
