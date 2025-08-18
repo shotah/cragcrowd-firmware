@@ -1,117 +1,86 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <BLEDevice.h>
-#include <BLEScan.h>
-#include <LoRa.h>
-#include <ArduinoJson.h>
-#include <esp_wifi.h>
-#include <esp_bt.h>
+#include "config.h"
+#include "device_scanner.h"
+#include "mesh_manager.h"
+#include <chrono>
 
-// Pin definitions for LilyGO T3S3
-#define LORA_SCK  5
-#define LORA_MISO 3
-#define LORA_MOSI 6
-#define LORA_SS   7
-#define LORA_RST  8
-#define LORA_DIO0 33
-
-// Configuration
-const int SCAN_DURATION = 30;  // seconds
-const int REPORT_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+// Configuration variable definitions
 const char* WALL_ID = "test_wall"; // This should be configurable
+const char* MESH_NODE_NAME = "CragCrowd-Sensor";
 
-// Device tracking
-std::set<String> detectedDevices;
-unsigned long lastReportTime = 0;
+// Global instances
+DeviceScanner scanner;
+MeshManager meshManager;
 
-class BLECallback : public BLEAdvertisedDeviceCallbacks {
-    void onResult(BLEAdvertisedDevice advertisedDevice) {
-        String macAddress = advertisedDevice.getAddress().toString().c_str();
-        detectedDevices.insert(macAddress);
-    }
-};
-
-void setupLoRa() {
-    SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
-    LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
-    
-    if (!LoRa.begin(915E6)) {
-        Serial.println("Starting LoRa failed!");
-        while (1);
-    }
-    
-    Serial.println("LoRa Initializing OK!");
-}
-
-void setupWiFiScan() {
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(100);
-}
-
-void setupBLEScan() {
-    BLEDevice::init("");
-    BLEScan* pBLEScan = BLEDevice::getScan();
-    pBLEScan->setAdvertisedDeviceCallbacks(new BLECallback());
-    pBLEScan->setActiveScan(true);
-    pBLEScan->setInterval(100);
-    pBLEScan->setWindow(99);
-}
-
-void scanForDevices() {
-    // Clear previous scan results
-    detectedDevices.clear();
-    
-    // Scan WiFi networks
-    int n = WiFi.scanNetworks();
-    for (int i = 0; i < n; ++i) {
-        String bssid = WiFi.BSSIDstr(i);
-        detectedDevices.insert(bssid);
-    }
-    
-    // Scan BLE devices
-    BLEScan* pBLEScan = BLEDevice::getScan();
-    BLEScanResults foundDevices = pBLEScan->start(SCAN_DURATION, false);
-    pBLEScan->clearResults();
-    
-    Serial.printf("Detected %d unique devices\\n", detectedDevices.size());
-}
-
-void sendReport() {
-    DynamicJsonDocument doc(1024);
-    doc["wall_id"] = WALL_ID;
-    doc["device_count"] = detectedDevices.size();
-    doc["timestamp"] = millis();
-    
-    String message;
-    serializeJson(doc, message);
-    
-    LoRa.beginPacket();
-    LoRa.print(message);
-    LoRa.endPacket();
-    
-    Serial.printf("Sent report: %s\\n", message.c_str());
-}
+// Modern time management with chrono
+using namespace std::chrono;
+auto lastReportTime = milliseconds{0};
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
     
-    Serial.println("CragCrowd Sensor Node Starting...");
+    Serial.println("CragCrowd Mesh Sensor Node Starting...");
+    Serial.println("=== PRIMARY MISSION ===");
+    Serial.println("Deploy sensors beyond gateway range using 3rd party mesh nodes");
+    Serial.println("========================");
     
-    setupLoRa();
-    setupWiFiScan();
-    setupBLEScan();
+    // Initialize device scanner with modern error handling
+    if (!scanner.init()) {
+        Serial.println("FATAL: Failed to initialize device scanner!");
+        while (true) {
+            delay(1000);
+        }
+    }
     
-    Serial.println("Setup complete. Starting monitoring...");
+    // Enable climbing-specific optimizations
+    scanner.enableClimbingModeFiltering();
+    
+    // Initialize mesh networking
+    if (!meshManager.init()) {
+        Serial.println("FATAL: Failed to initialize mesh networking!");
+        while (true) {
+            delay(1000);
+        }
+    }
+    
+    // Print node information
+    meshManager.printNodeInfo();
+    
+    Serial.println("Setup complete. Starting mesh monitoring...");
 }
 
 void loop() {
-    unsigned long currentTime = millis();
+    // Modern time handling with chrono
+    const auto currentTime = milliseconds{millis()};
+    const auto reportInterval = milliseconds{REPORT_INTERVAL};
     
-    if (currentTime - lastReportTime >= REPORT_INTERVAL) {
-        scanForDevices();
-        sendReport();
+    // Handle incoming mesh messages
+    meshManager.handleIncomingMessages();
+    
+    // Periodic sensor scanning and reporting
+    if (currentTime - lastReportTime >= reportInterval) {
+        Serial.println("Starting sensor scan...");
+        
+        // Scan for devices
+        scanner.scanForDevices();
+        
+        // Enhanced analytics reporting
+        const auto estimatedPeople = scanner.estimateHumanCount();
+        if (estimatedPeople.has_value()) {
+            Serial.printf("Estimated climbers: %zu people\n", estimatedPeople.value());
+        }
+        
+        // Send data via mesh network with modern types
+        const bool success = meshManager.sendSensorData(
+            std::string_view{WALL_ID}, 
+            scanner.getDeviceCount(), 
+            currentTime
+        );
+        
+        // Modern conditional output
+        Serial.println(success ? "Mesh transmission successful" : "Mesh transmission failed");
+        
         lastReportTime = currentTime;
     }
     

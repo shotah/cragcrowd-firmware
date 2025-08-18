@@ -1,23 +1,34 @@
-# CragCrowd Firmware - ESP32-S3 Sensor Node
+# CragCrowd Firmware - ESP32-S3 Mesh Sensor Node
 
-The sensor node firmware for CragCrowd's LoRa-powered crag activity monitoring system.
+The sensor node firmware for CragCrowd's mesh-networked crag activity monitoring system.
+
+## 🎯 **Primary Objective**
+
+Deploy sensors **out of direct range** of gateway nodes by leveraging **3rd party LoRa nodes** (like existing Meshtastic devices) to create multi-hop mesh connections. This enables monitoring of remote climbing areas that would otherwise be unreachable due to terrain, distance, or obstacles.
 
 ## 🏗️ Hardware
 
-**Target Board**: LilyGO T3S3 with ESP32-S3 and SX1262 LoRa module
+**Target Board**: LilyGO T3S3 with ESP32-S3 and SX1276 LoRa module
 
 ### Pin Configuration
 - **LoRa SPI**: SCK=5, MISO=3, MOSI=6, SS=7, RST=8, DIO0=33
-- **Frequency**: 915 MHz (North America)
+- **Frequency**: 915 MHz (North America) / 868 MHz (Europe) - configurable
 - **Power**: USB-C charging, 18650 battery support
 
 ## ⚙️ Functionality
 
-The sensor node:
+The mesh sensor node:
 1. **Passively scans** for WiFi beacon frames and BLE advertisements
-2. **Counts unique devices** using MAC address deduplication
-3. **Transmits anonymized counts** via LoRa every 10 minutes
-4. **Operates autonomously** on solar + battery power
+2. **Counts unique devices** using MAC address deduplication  
+3. **Transmits anonymized counts** via **Meshtastic mesh network** every 10 minutes
+4. **Routes through 3rd party nodes** (hikers, climbers with Meshtastic devices)
+5. **Operates autonomously** on solar + battery power in remote locations
+
+### **Mesh Network Architecture**
+```
+Remote Sensor → Hiker's Meshtastic → Climber's Device → Gateway → Internet
+    (Crag)         (Relay Node)      (Relay Node)    (Base)    (API)
+```
 
 ### Data Format
 ```json
@@ -111,10 +122,12 @@ esp_deep_sleep_start();
 ### File Structure
 ```
 src/
-├── main.cpp           # Main application logic
-├── config.h           # Configuration constants
-├── power_manager.h    # Power management utilities
-└── lora_handler.h     # LoRa communication wrapper
+├── main.cpp           # Main application entry point
+├── config.h           # Hardware pins and configuration constants
+├── device_scanner.h   # WiFi/BLE device detection
+├── device_scanner.cpp # Device scanning implementation
+├── mesh_manager.h     # Meshtastic mesh networking
+└── mesh_manager.cpp   # Mesh communication and routing
 ```
 
 ### Adding Features
@@ -124,10 +137,33 @@ src/
 4. **Debug output**: Use `Serial.printf()` for debugging
 
 ### Libraries Used
-- **LoRa**: RadioLib for SX1262 communication
+- **Mesh Networking**: [Meshtastic](https://github.com/meshtastic/Meshtastic) for multi-hop mesh communication
+- **LoRa**: [RadioLib](https://github.com/jgromes/RadioLib) for SX1276 communication (868MHz/915MHz)
 - **WiFi**: ESP32 built-in WiFi scanning
-- **BLE**: ESP32 built-in BLE scanning
-- **JSON**: ArduinoJson for data serialization
+- **BLE**: ESP32 built-in BLE scanning  
+- **JSON**: [ArduinoJson](https://github.com/bblanchon/ArduinoJson) for data serialization
+- **Power Management**: [Adafruit LC709203F](https://github.com/adafruit/Adafruit_LC709203F) for battery monitoring
+- **Display (Optional)**: [Adafruit SSD1306](https://github.com/adafruit/Adafruit_SSD1306) and [GFX Library](https://github.com/adafruit/Adafruit-GFX-Library)
+
+### Reference Examples & Documentation
+
+#### **Hardware & Board References**
+- **LilyGO Examples**: [LilyGo-LoRa-Series](https://github.com/Xinyuan-LilyGO/LilyGo-LoRa-Series) - Official T3S3 board examples
+- **Meshtastic T3S3 Board Config**: [tlora-t3s3-v1.json](https://github.com/meshtastic/firmware/blob/master/boards/tlora-t3s3-v1.json) - Official T3S3 pin definitions
+- **Meshtastic ESP32-S3 Config**: [esp32s3.ini](https://github.com/meshtastic/firmware/blob/master/arch/esp32/esp32s3.ini) - PlatformIO configuration
+- **Your AMOLED Project**: [amipixel-device-t3-display](https://github.com/shotah/amipixel-device-t3-display) - Reference platformio.ini setup
+
+#### **Software & Library References**
+- **RadioLib Documentation**: [RadioLib Wiki](https://github.com/jgromes/RadioLib/wiki) - Comprehensive LoRa API documentation
+- **Meshtastic Firmware**: [meshtastic/firmware](https://github.com/meshtastic/firmware) - Official Meshtastic firmware source
+- **Meshtastic Main**: [main.cpp](https://github.com/meshtastic/firmware/blob/master/src/main.cpp) - Meshtastic entry point reference
+- **Meshtastic Arduino**: [Meshtastic-Arduino](https://github.com/meshtastic/Meshtastic-arduino) - Arduino integration library
+- **ESP32 Arduino Core**: [Arduino-ESP32](https://github.com/espressif/arduino-esp32) - Core platform documentation
+
+#### **Protocol & Mesh Networking**
+- **Meshtastic Protocol**: [Meshtastic Documentation](https://meshtastic.org) - Complete protocol specification
+- **LoRa Mesh Papers**: Research papers on LoRa mesh networking protocols
+- **RadioHead Library**: Alternative mesh networking library for comparison
 
 ## 🧪 Testing
 
@@ -137,11 +173,24 @@ src/
 make monitor
 
 # Expected output:
-# CragCrowd Sensor Node Starting...
-# LoRa Initializing OK!
-# Setup complete. Starting monitoring...
+# CragCrowd Mesh Sensor Node Starting...
+# === PRIMARY MISSION ===
+# Deploy sensors beyond gateway range using 3rd party mesh nodes
+# ========================
+# Device scanner initialized
+# Initializing SX1276 for mesh... success!
+# Mesh Manager initialized (basic mode)
+# === Mesh Node Info ===
+# Node Name: CragCrowd-Sensor
+# Channel: 0
+# Status: Initialized
+# =====================
+# Setup complete. Starting mesh monitoring...
+# Starting sensor scan...
 # Detected 8 unique devices
-# Sent report: {"wall_id":"test_wall","device_count":8,"timestamp":1704067200}
+# Transmitting mesh packet... success!
+# Sent mesh data: {"type":"sensor_data","wall_id":"test_wall","device_count":8,"timestamp":1234567890,"node_id":"CragCrowd-Sensor"}
+# Mesh transmission successful
 ```
 
 ### Field Testing
@@ -196,6 +245,43 @@ make check-device
 - **No remote access**: Device operates independently
 - **Open source**: Full code transparency
 - **Local processing**: All data processing on-device
+
+## 📋 **Next Steps for Full Meshtastic Integration**
+
+The current implementation is a **foundational framework**. To complete full Meshtastic integration:
+
+### **Phase 1: Core Meshtastic Integration** 🔄
+- [ ] **Replace basic RadioLib calls** with actual Meshtastic protocol stack
+- [ ] **Study Meshtastic firmware structure** using [main.cpp](https://github.com/meshtastic/firmware/blob/master/src/main.cpp) reference
+- [ ] **Integrate Meshtastic message format** for proper protocol compliance
+- [ ] **Add proper node initialization** following [tlora-t3s3-v1.json](https://github.com/meshtastic/firmware/blob/master/boards/tlora-t3s3-v1.json) configuration
+
+### **Phase 2: Mesh Networking Features** 🌐
+- [ ] **Add node discovery** and routing table management
+- [ ] **Implement store-and-forward** for offline message queuing
+- [ ] **Add encryption** for secure mesh communication
+- [ ] **Configure channels** and region-specific settings (915MHz North America)
+- [ ] **Implement ACK/NACK** message handling
+
+### **Phase 3: Advanced Features** 🚀
+- [ ] **Power optimization** with deep sleep between transmissions
+- [ ] **Solar charging management** with battery monitoring
+- [ ] **Over-the-air updates** for remote firmware deployment
+- [ ] **GPS integration** for location-aware mesh routing
+- [ ] **Web interface** for remote configuration
+
+### **Phase 4: Testing & Deployment** 🧪
+- [ ] **Multi-hop testing** with 3+ intermediate nodes
+- [ ] **Range testing** in various terrain conditions
+- [ ] **Power consumption optimization** for solar operation
+- [ ] **Field deployment** at actual climbing locations
+- [ ] **Integration testing** with existing Meshtastic devices
+
+### **Reference Implementation Priority**
+1. **Start with**: [Meshtastic Arduino examples](https://github.com/meshtastic/Meshtastic-arduino) for basic integration
+2. **Reference**: [Official firmware](https://github.com/meshtastic/firmware) for protocol implementation
+3. **Use**: [T3S3 board config](https://github.com/meshtastic/firmware/blob/master/boards/tlora-t3s3-v1.json) for pin validation
+4. **Follow**: [ESP32-S3 config](https://github.com/meshtastic/firmware/blob/master/arch/esp32/esp32s3.ini) for build settings
 
 ## 📈 Deployment Tips
 
