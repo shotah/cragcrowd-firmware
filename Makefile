@@ -28,6 +28,44 @@ monitor:
 # Upload and monitor in one command
 deploy: upload monitor
 
+# Prepare firmware for Windows upload
+upload-windows: build
+	@echo "=================================================="
+	@echo "Copying firmware files to Windows temp directory..."
+	@echo "=================================================="
+	@mkdir -p /mnt/c/temp/cragcrowd-firmware
+	@cp .pio/build/lilygo-t3-s3/firmware.bin /mnt/c/temp/cragcrowd-firmware/
+	@cp .pio/build/lilygo-t3-s3/bootloader.bin /mnt/c/temp/cragcrowd-firmware/ 2>/dev/null || echo "Bootloader not found (normal for some builds)"
+	@cp .pio/build/lilygo-t3-s3/partitions.bin /mnt/c/temp/cragcrowd-firmware/ 2>/dev/null || echo "Partitions not found (normal for some builds)"
+	@echo ""
+	@echo "Files copied to C:\\temp\\cragcrowd-firmware\\"
+	@echo ""
+	@echo "=================================================="
+	@echo "Windows Upload Instructions:"
+	@echo "=================================================="
+	@echo "1. Put ESP32 in bootloader mode:"
+	@echo "   - Hold BOOT button"
+	@echo "   - Press and release RESET button"
+	@echo "   - Release BOOT button"
+	@echo ""
+	@echo "2. Find your device in Windows PowerShell (Admin):"
+	@echo "   usbipd list"
+	@echo ""
+	@echo "3. Run these commands in Windows PowerShell (Admin):"
+	@echo "   cd C:\\temp\\cragcrowd-firmware"
+	@echo "   python -m esptool --chip esp32s3 --port COM5 --baud 921600 write_flash 0x0 firmware.bin"
+	@echo ""
+	@echo "   (Replace COM5 with your actual COM port from Device Manager)"
+	@echo ""
+	@echo "4. Alternative with Arduino IDE:"
+	@echo "   - Tools > Board > ESP32 Arduino > ESP32S3 Dev Module"
+	@echo "   - Tools > Port > [Your COM Port]"
+	@echo "   - Sketch > Upload Using Programmer"
+	@echo "   - Select: C:\\temp\\cragcrowd-firmware\\firmware.bin"
+	@echo ""
+	@echo "5. After upload, press RESET button to run firmware"
+	@echo "=================================================="
+
 # Run tests (if available)
 test:
 	@echo "Running tests..."
