@@ -12,8 +12,10 @@
 // Configuration constants
 constexpr int SCAN_DURATION = 30;  // seconds
 constexpr int REPORT_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
-extern const char* WALL_ID;
 
-// Meshtastic configuration
-extern const char* MESH_NODE_NAME;
+// Deployment configuration - CHANGE THESE FOR EACH SENSOR
+constexpr const char* WALL_ID = "test_wall";  // Unique identifier for this sensor location
+
+// Meshtastic configuration  
+constexpr const char* MESH_NODE_NAME = "CragCrowd-Sensor";
 constexpr int MESH_CHANNEL = 0;  // Default channel

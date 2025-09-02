@@ -4,10 +4,6 @@
 #include "mesh_manager.h"
 #include <chrono>
 
-// Configuration variable definitions
-const char* WALL_ID = "test_wall"; // This should be configurable
-const char* MESH_NODE_NAME = "CragCrowd-Sensor";
-
 // Global instances
 DeviceScanner scanner;
 MeshManager meshManager;

@@ -1,25 +1,35 @@
-# CragCrowd Firmware Makefile - Windows/PowerShell + PlatformIO
-# Based on your AMOLED project patterns
+# Makefile for AmiPixel PlatformIO Project
 
-PROJECT_ENV = t3_s3_v1_x
+# Compiler and flags
+CC = g++
+CFLAGS = -Wall -Wextra -std=c++17
+
+PROJECT_ENV = T-Display-AMOLED       # Default PlatformIO environment (adjust if needed)
 TEST_ENV = test
-PLATFORMIO_CMD = pio
+VIRTUAL_ENV = qemu_esp32
+PLATFORMIO_CMD = pio                 # Command for PlatformIO CLI (usually 'pio' or 'platformio')
 
-.PHONY: all build upload clean clean-libs clean-all monitor deploy test debug info flash-erase quick format compdb tidy uploadfs
+# --- Targets ---
+
+.PHONY: all build upload clean clean-libs clean-all monitor py-pio-install deploy test compdb uploadfs deployfs quick generate-stick-figures
 
 all: build
 
 build:
-	@echo "Building CragCrowd firmware for environment: $(PROJECT_ENV)"
+	@echo "Building AmiPixel project for environment: $(PROJECT_ENV)"
 	@$(PLATFORMIO_CMD) run -e $(PROJECT_ENV)
 
 upload:
-	@echo "Uploading CragCrowd to device (environment: $(PROJECT_ENV))"
+	@echo "Uploading AmiPixel to device (environment: $(PROJECT_ENV))"
 	@$(PLATFORMIO_CMD) run -t upload -e $(PROJECT_ENV)
 
 uploadfs:
-	@echo "Uploading CragCrowd filesystem image to device (environment: $(PROJECT_ENV))"
+	@echo "Uploading AmiPixel filesystem image (SPIFFS) to device (environment: $(PROJECT_ENV))"
 	@$(PLATFORMIO_CMD) run -t uploadfs -e $(PROJECT_ENV)
+
+deployfs: upload uploadfs
+	@echo "Deploying AmiPixel firmware and filesystem (environment: $(PROJECT_ENV))"
+	@echo "Firmware and SPIFFS filesystem uploaded."
 
 clean:
 	@echo "Cleaning build artifacts (environment: $(PROJECT_ENV))"
@@ -40,16 +50,24 @@ monitor:
 
 deploy: clean build upload monitor
 
-# Quick build and upload for development  
-quick: build upload
+# Quick build and upload for development with stick figure generation
+quick: generate-stick-figures build upload
 	@echo "Quick build and upload completed!"
+
+# Generate stick figures using the Python script
+generate-stick-figures:
+	@echo "Generating stick figure animations..."
+	@python scripts/stick_figure_generator.py
+
+vbuild:
+	@echo "Building AmiPixel project for environment: $(VIRTUAL_ENV)"
+	@$(PLATFORMIO_CMD) run -e $(VIRTUAL_ENV)
 
 test:
 	@echo "Starting Tests (environment: $(TEST_ENV))"
 	@$(PLATFORMIO_CMD) test -e $(TEST_ENV) -vvv
 
-# Setup development environment
-setup:
+py-pio-install:
 	@echo "Python install of platformio starting"
 	python -m pip install -U platformio
 
@@ -65,64 +83,40 @@ tidy:
 	@echo "Running clang-tidy on source files"
 	@$(PLATFORMIO_CMD) check
 
-# Device and debugging commands
-check-device:
-	@echo "Checking connected devices..."
-	@$(PLATFORMIO_CMD) device list
-
-info:
-	@echo "=== PlatformIO Environment Info ==="
-	@$(PLATFORMIO_CMD) system info
-	@echo "=== Board Configuration ==="
-	@$(PLATFORMIO_CMD) boards $(PROJECT_ENV)
-
-size:
-	@echo "Showing firmware size information..."
-	@$(PLATFORMIO_CMD) run --target size -e $(PROJECT_ENV)
-
-flash-erase:
-	@echo "Erasing flash memory..."
-	@$(PLATFORMIO_CMD) run --target erase -e $(PROJECT_ENV)
-
-# Update commands
-update:
-	@echo "Updating PlatformIO and dependencies..."
-	@$(PLATFORMIO_CMD) pkg update -g
-	@$(PLATFORMIO_CMD) platform update
-
 help:
-	@echo "CragCrowd Firmware Makefile - Windows/PowerShell + PlatformIO"
+	@echo "Makefile for AmiPixel PlatformIO Project"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all            - Builds the project (default target)"
 	@echo "  build          - Builds the project for the specified environment"
 	@echo "  upload         - Uploads the firmware to the device"
-	@echo "  uploadfs       - Uploads the filesystem to the device"
+	@echo "  uploadfs       - Uploads the filesystem (SPIFFS) to the device"
+	@echo "  deployfs       - Uploads both firmware and filesystem"
 	@echo "  clean          - Cleans build artifacts"
 	@echo "  clean-libs     - Purges downloaded libraries (.pio/libdeps)"
 	@echo "  clean-all      - Complete clean: build artifacts and libraries"
 	@echo "  monitor        - Starts the Serial Monitor"
 	@echo "  deploy         - Clean, build, upload, and monitor"
-	@echo "  quick          - Build and upload"
+	@echo "  quick          - Generate stick figures, build, and upload"
 	@echo "  test           - Run unit tests"
-	@echo "  setup          - Installs PlatformIO CLI using Python pip"
+	@echo "  py-pio-install - Installs PlatformIO CLI using Python pip"
 	@echo "  format         - Formats the source files using clang-format"
 	@echo "  tidy           - Lints the source files using clang-tidy"
-	@echo "  compdb         - Creates compile commands JSON for clang tools"
-	@echo "  check-device   - List connected devices"
-	@echo "  info           - Show environment and board information"
-	@echo "  size           - Show firmware size information"
-	@echo "  flash-erase    - Completely erase flash memory"
-	@echo "  update         - Update PlatformIO and dependencies"
 	@echo ""
 	@echo "Variables:"
 	@echo "  PROJECT_ENV    - PlatformIO environment (default: $(PROJECT_ENV))"
 	@echo "                   Override: make build PROJECT_ENV=your_env"
-	@echo "  PLATFORMIO_CMD - PlatformIO CLI command (default: $(PLATFORMIO_CMD))"
+	@echo "  PLATFORMIO_CMD  - PlatformIO CLI command (default: $(PLATFORMIO_CMD))"
+	@echo "                   Override: make PLATFORMIO_CMD=platformio"
 	@echo ""
 	@echo "Usage Examples:"
 	@echo "  make build                  # Build for default environment"
-	@echo "  make upload                 # Upload for default environment"  
+	@echo "  make upload                 # Upload for default environment"
 	@echo "  make clean-libs             # Purge library cache and force re-download"
-	@echo "  make deploy                 # Full development cycle"
-	@echo "  make quick                  # Fast build and upload"
+	@echo "  make clean-all              # Complete clean including libraries"
+	@echo "  make clean PROJECT_ENV=esp32dev    # Clean for 'esp32dev' environment"
+	@echo "  make monitor                # Start serial monitor"
+	@echo "  make py-pio-install        # Show PlatformIO CLI install command (Python pip)"
+	@echo "  make format                 # Format source files using clang-format"
+	@echo "  make tidy                   # Lint source files using clang-tidy"
+	@echo "  make help                   # Show this help message"
